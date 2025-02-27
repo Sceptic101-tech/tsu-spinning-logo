@@ -2,8 +2,6 @@
 #include<math.h>
 #include<windows.h>
 
-//Все комментарии на английском
-
 # define M_PI 3.14159265358979323846
 
 using namespace std;
@@ -52,7 +50,6 @@ void clearScreen()
 void RotateAroundX(float* xyz, const float& cos_alpha, const float& sin_alpha)
 {
 	float old_y = xyz[1];
-	//float old_z = xyz[2];
 	xyz[1] = old_y * cos_alpha + xyz[2] * sin_alpha;
 	xyz[2] = xyz[2] * cos_alpha - old_y * sin_alpha;
 }
@@ -60,7 +57,6 @@ void RotateAroundX(float* xyz, const float& cos_alpha, const float& sin_alpha)
 void RotateAroundY(float* xyz, const float& cos_phi, const float& sin_phi)
 {
 	float old_x = xyz[0];
-	//float old_z = xyz[2];
 	xyz[0] = old_x * cos_phi - xyz[2] * sin_phi;
 	xyz[2] = old_x * sin_phi + xyz[2] * cos_phi;
 }
@@ -68,47 +64,8 @@ void RotateAroundY(float* xyz, const float& cos_phi, const float& sin_phi)
 void RotateAroundZ(float* xyz, const float& cos_beta, const float& sin_beta)
 {
 	float old_x = xyz[0];
-	//float old_y = xyz[1];
 	xyz[0] = old_x * cos_beta + xyz[1] * sin_beta;
 	xyz[1] = xyz[1] * cos_beta - old_x * sin_beta;
-}
-
-template<typename T>
-void Print(T** arr, int& size)
-{
-	for (int i = 0; i < size; i++)
-	{
-		for (int j = 0; j < size; j++)
-		{
-			cout << arr[i][j] << " ";
-		}
-		cout << endl;
-	}
-}
-
-template<typename T>
-void Print(T** arr, const int& size)
-{
-	for (int i = 0; i < size; i++)
-	{
-		for (int j = 0; j < size; j++)
-		{
-			cout << arr[i][j] << " ";
-		}
-		cout << endl;
-	}
-}
-
-template<typename T>
-void SetZeros(T** arr, int& size)
-{
-	for (int i = 0; i < size; i++)
-	{
-		for (int j = 0; j < size; j++)
-		{
-			arr[i][j] = 0;
-		}
-	}
 }
 
 template<typename T>
@@ -124,18 +81,18 @@ void M_FillWithValue(T** arr, const int& rows, const int& columns, char value)
 }
 
 void SetConsoleWindowSize(int width, int height) {
-	// Устанавливаем размер буфера экрана
+	// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЂР°Р·РјРµСЂ Р±СѓС„РµСЂР° СЌРєСЂР°РЅР°
 	COORD bufferSize = { static_cast<SHORT>(width), static_cast<SHORT>(height) };
 	SetConsoleScreenBufferSize(handle, bufferSize);
 
-	// Меняем размер окна
+	// РњРµРЅСЏРµРј СЂР°Р·РјРµСЂ РѕРєРЅР°
 	SMALL_RECT rect = { 0, 0, static_cast<SHORT>(width - 1), static_cast<SHORT>(height - 1) };
 	SetConsoleWindowInfo(handle, TRUE, &rect);
 }
 
-void RenderFrame(float alpha, float beta, float gamma)//Каждый фрейм будет повернут на alpha и beta соответственно по оси ОX и ОY.
+void RenderFrame(float alpha, float beta, float gamma)//РљР°Р¶РґС‹Р№ С„СЂРµР№Рј Р±СѓРґРµС‚ РїРѕРІРµСЂРЅСѓС‚ РЅР° alpha, beta, gamma СЃРѕРѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕ РїРѕ РѕСЃРё РћX, РћZ, OY.
 {
-	//Прерасчет sin cos поворота
+	//Pre-calculation of the sin cos turn
 	sin_alpha = sin(alpha);
 	cos_alpha = cos(alpha);
 	sin_beta = sin(beta);
@@ -154,11 +111,11 @@ void RenderFrame(float alpha, float beta, float gamma)//Каждый фрейм будет повер
 			RotateAroundX(xyz, cos_alpha, sin_alpha);
 			RotateAroundZ(xyz, cos_beta, sin_beta);
 			xyz[2] += K2;
-			ooz = 1.0f / xyz[2]; //"one over z". Выгоднее один раз разделить, затем дважды умножить, чем дважды делить
+			ooz = 1.0f / xyz[2]; //"one over z" It is more profitable to divide once and then multiply twice than to divide twice
 			xp = static_cast<int>(window_width / 2 + xyz[0] * ooz * K1);
 			yp = static_cast<int>(window_high / 2 - xyz[1] * ooz * K1);
 
-			//Вектор нормали к поверхности
+			//Р’РµРєС‚РѕСЂ РЅРѕСЂРјР°Р»Рё Рє РїРѕРІРµСЂС…РЅРѕСЃС‚Рё
 			Lxyz[0] = 1;
 			Lxyz[1] = 1;
 			Lxyz[2] = 0;
@@ -166,16 +123,16 @@ void RenderFrame(float alpha, float beta, float gamma)//Каждый фрейм будет повер
 			RotateAroundX(Lxyz, cos_alpha, sin_alpha);
 			RotateAroundZ(Lxyz, cos_beta, sin_beta);
 
-			float light_intensity = Lxyz[1] - Lxyz[2];//Домножаем на вектор света (0,1,-1). Вектор света не нормализован, имеет длину 2 -> изменяется в диапазоне (2, 2)
+			float light_intensity = Lxyz[1] - Lxyz[2];//Multiply by the light vector (0.1,-1)
 			if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high) continue;
 			output[xp][yp] = '#';
 
-			if (light_intensity > 0)//light_intensity - косинус угла между вектором света и нормали
+			if (light_intensity > 0)//light_intensity - the cosine of the angle between the light vector and the normal
 			{
 				if (ooz > z_buffer[xp][yp])
 				{
 					z_buffer[xp][yp] = ooz;
-					int luminance_index = static_cast<int>(light_intensity * 5.5f);//Теперь в диапазоне (0, 11)
+					int luminance_index = static_cast<int>(light_intensity * 5.5f);//Now in the range (0, 11)
 					//output[xp][yp] = dictionary[luminance_index];
 					//output[xp][yp] = '#';
 				}
@@ -206,25 +163,24 @@ int main()
 		z_buffer[i] = new float[window_width];
 	}
 
-	int size = 3;
 	int counter = 0;
 
-	SetConsoleWindowSize(window_high, window_width); // Изменить размер окна
+	SetConsoleWindowSize(window_high, window_width);
 
 	float alpha = 0;
 	float beta = 0;
 	float gamma = 0;
-	counter = 0;
 
 	while (counter < 10000)
 	{
 		clearScreen();
 		M_FillWithValue<char>(output, window_high, window_width, ' ');
 		M_FillWithValue<float>(z_buffer, window_high, window_width, NULL);
-		printf("\x1b[H"); //Переводим каретку в самое начало окна терминала
+		printf("\x1b[H"); //We move the carriage to the beginning of the terminal window
 		RenderFrame(alpha, beta, gamma);
 		//Sleep(10);
-		alpha += 0.03f;//при бОльших занчениях получается бОльшая разница между кадрами, тк бОльший угол поворота фигуры
+		//angles of rotation of the figure
+		alpha += 0.03f;
 		beta += 0.03f;
 		gamma += 0.03f;
 		counter++;
