@@ -16,11 +16,12 @@ const float half_cube_side = 2;
 const float theta_step = 0.09f;
 const float phi_step = 0.03f;
 
-const float x_step = 0.03f;
-const float y_step = 0.03f;
+const float x_step = 0.05f;
+const float y_step = 0.05f;
+const float z_step = 0.05f;
 char dictionary[12] = { '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@' };
 
-const float K2 = 20.0f;//The distance from the observer to the figure
+const float K2 = 40.0f;//The distance from the observer to the figure
 const float K1 = window_width * K2 * 6 / (20 * (half_cube_side));//The zoom level of the perspective projection to 2D
 
 char** output;
@@ -81,16 +82,16 @@ void M_FillWithValue(T** arr, const int& rows, const int& columns, char value)
 }
 
 void SetConsoleWindowSize(int width, int height) {
-	// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЂР°Р·РјРµСЂ Р±СѓС„РµСЂР° СЌРєСЂР°РЅР°
+	// Устанавливаем размер буфера экрана
 	COORD bufferSize = { static_cast<SHORT>(width), static_cast<SHORT>(height) };
 	SetConsoleScreenBufferSize(handle, bufferSize);
 
-	// РњРµРЅСЏРµРј СЂР°Р·РјРµСЂ РѕРєРЅР°
+	// Меняем размер окна
 	SMALL_RECT rect = { 0, 0, static_cast<SHORT>(width - 1), static_cast<SHORT>(height - 1) };
 	SetConsoleWindowInfo(handle, TRUE, &rect);
 }
 
-void RenderFrame(float alpha, float beta, float gamma)//РљР°Р¶РґС‹Р№ С„СЂРµР№Рј Р±СѓРґРµС‚ РїРѕРІРµСЂРЅСѓС‚ РЅР° alpha, beta, gamma СЃРѕРѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕ РїРѕ РѕСЃРё РћX, РћZ, OY.
+void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotated to alpha, beta, gamma, respectively, along the OX, OZ, OY axis.
 {
 	//Pre-calculation of the sin cos turn
 	sin_alpha = sin(alpha);
@@ -100,41 +101,76 @@ void RenderFrame(float alpha, float beta, float gamma)//РљР°Р¶РґС‹Р№ С„СЂРµР№Рј 
 	sin_gamma = sin(gamma);
 	cos_gamma = cos(gamma);
 
-	for (float y = -half_cube_side; y <= half_cube_side; y += y_step)
+	for (int i = 0; i < 6; i++)//for cude sides
 	{
-		for (float x = -half_cube_side; x <= half_cube_side; x += x_step)
+		for (float y = -half_cube_side; y <= half_cube_side; y += y_step)
 		{
-			xyz[0] = x;
-			xyz[1] = y;
-			xyz[2] = 0;
-			RotateAroundY(xyz, cos_gamma, sin_gamma);
-			RotateAroundX(xyz, cos_alpha, sin_alpha);
-			RotateAroundZ(xyz, cos_beta, sin_beta);
-			xyz[2] += K2;
-			ooz = 1.0f / xyz[2]; //"one over z" It is more profitable to divide once and then multiply twice than to divide twice
-			xp = static_cast<int>(window_width / 2 + xyz[0] * ooz * K1);
-			yp = static_cast<int>(window_high / 2 - xyz[1] * ooz * K1);
-
-			//Р’РµРєС‚РѕСЂ РЅРѕСЂРјР°Р»Рё Рє РїРѕРІРµСЂС…РЅРѕСЃС‚Рё
-			Lxyz[0] = 1;
-			Lxyz[1] = 1;
-			Lxyz[2] = 0;
-			RotateAroundY(Lxyz, cos_gamma, sin_gamma);
-			RotateAroundX(Lxyz, cos_alpha, sin_alpha);
-			RotateAroundZ(Lxyz, cos_beta, sin_beta);
-
-			float light_intensity = Lxyz[1] - Lxyz[2];//Multiply by the light vector (0.1,-1)
-			if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high) continue;
-			output[xp][yp] = '#';
-
-			if (light_intensity > 0)//light_intensity - the cosine of the angle between the light vector and the normal
+			for (float x = -half_cube_side; x <= half_cube_side; x += x_step)
 			{
-				if (ooz > z_buffer[xp][yp])
+				switch (i)
 				{
-					z_buffer[xp][yp] = ooz;
-					int luminance_index = static_cast<int>(light_intensity * 5.5f);//Now in the range (0, 11)
-					//output[xp][yp] = dictionary[luminance_index];
-					//output[xp][yp] = '#';
+				case 0:
+					xyz[0] = x;
+					xyz[1] = y;
+					xyz[2] = -half_cube_side;
+					break;
+				case 1:
+					xyz[0] = x;
+					xyz[1] = half_cube_side;
+					xyz[2] = y;
+					break;
+				case 2:
+					xyz[0] = x;
+					xyz[1] = y;
+					xyz[2] = half_cube_side;
+					break;
+				case 3:
+					xyz[0] = x;
+					xyz[1] = -half_cube_side;
+					xyz[2] = y;
+					break;
+				case 4:
+					xyz[0] = half_cube_side;
+					xyz[1] = y;
+					xyz[2] = x;
+					break;
+				case 5:
+					xyz[0] = -half_cube_side;
+					xyz[1] = y;
+					xyz[2] = x;
+					break;
+				}
+				RotateAroundY(xyz, cos_gamma, sin_gamma);
+				RotateAroundX(xyz, cos_alpha, sin_alpha);
+				RotateAroundZ(xyz, cos_beta, sin_beta);
+				xyz[2] += K2;
+				ooz = 1.0f / xyz[2]; //"one over z" It is more profitable to divide once and then multiply twice than to divide twice
+				xp = static_cast<int>(window_width / 2 + xyz[0] * ooz * K1);
+				yp = static_cast<int>(window_high / 2 - xyz[1] * ooz * K1);
+
+				//Вектор нормали к поверхности
+				Lxyz[0] = 1;
+				Lxyz[1] = 1;
+				Lxyz[2] = 0;
+				RotateAroundY(Lxyz, cos_gamma, sin_gamma);
+				RotateAroundX(Lxyz, cos_alpha, sin_alpha);
+				RotateAroundZ(Lxyz, cos_beta, sin_beta);
+
+				//float light_intensity = Lxyz[1] - Lxyz[2];//Multiply by the light vector (0.1,-1)
+				float light_intensity = 1;
+				if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high)
+					continue;
+
+				if (light_intensity > 0)//light_intensity - the cosine of the angle between the light vector and the normal
+				{
+					if (ooz > z_buffer[xp][yp])
+					{
+						z_buffer[xp][yp] = ooz;
+						int luminance_index = static_cast<int>(light_intensity * 5.5f);//Now in the range (0, 11)
+						output[xp][yp] = dictionary[i + 5];
+						//output[xp][yp] = dictionary[luminance_index];
+						//output[xp][yp] = '#';
+					}
 				}
 			}
 		}
@@ -173,7 +209,7 @@ int main()
 
 	while (counter < 10000)
 	{
-		clearScreen();
+		//clearScreen();
 		M_FillWithValue<char>(output, window_high, window_width, ' ');
 		M_FillWithValue<float>(z_buffer, window_high, window_width, NULL);
 		printf("\x1b[H"); //We move the carriage to the beginning of the terminal window
