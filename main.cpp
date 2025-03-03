@@ -11,24 +11,25 @@ HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 const int window_high = 50;
 const int window_width = 50;
 
-const float half_cube_side = 2;
+const float logo_high = 1.5f;
 const float half_pi = M_PI / 2;
+const float half_logo_thickness = 0.3f;
 
-const float theta_step = 0.09f;
-const float phi_step = 0.03f;
-const float radius_step = 0.03f;
+const float theta_step = 0.1f;
+//const float phi_step = 0.09f;
+const float radius_step_for_front = 0.03f;
+float radius_step;
 
 
-const float x_step = 0.05f;
-const float y_step = 0.05f;
-const float z_step = 0.05f;
+const float x_step = 0.1f;
+const float y_step = 0.1f;
+const float z_step = 0.1f;
 char dictionary[12] = { '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@' };
 
-const float thickness = 2.0f;
 const float R1 = 1.0f;//The radius of the inner circle
-const float R2 = 1.8f;//The radius of the outer circle
-const float K2 = 40.0f;//The distance from the observer to the figure
-const float K1 = window_width * K2 * 6 / (20 * (half_cube_side));//The zoom level of the perspective projection to 2D
+const float R2 = 2.0f;//The radius of the outer circle
+const float K2 = 10.0f;//The distance from the observer to the figure
+const float K1 = window_width * K2 * 8 / (20 * (logo_high + R2));//The zoom level of the perspective projection to 2D
 
 char** output;
 float** z_buffer;
@@ -46,7 +47,7 @@ float sin_phi;
 float sin_gamma;
 float cos_gamma;
 float ooz;
-float logo_high = 1.5f;
+float light_intensity;
 int xp;
 int yp;
 
@@ -108,73 +109,37 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 	sin_gamma = sin(gamma);
 	cos_gamma = cos(gamma);
 
-	for (float radius = R1; radius < R2; radius += radius_step)
+	for (float z = -half_logo_thickness; z < half_logo_thickness; z += z_step)
 	{
+		if (z == -half_logo_thickness || z + z_step >= half_logo_thickness) radius_step = radius_step_for_front;
+		else radius_step = R2 - R1 - radius_step_for_front;
 		//Drawing circles
-		for (float theta = -half_pi; theta <= half_pi; theta += theta_step)//Circle on XOY
+		for (float theta = -half_pi; theta < half_pi; theta += theta_step)//Circle on XOY
 		{
 			cos_theta = cos(theta);
 			sin_theta = sin(theta);
 
-			float circlex = radius * cos_theta;//The initial coordinates of the circle
-			float circley = radius * sin_theta;
-
-			xyz[0] = circlex;
-			xyz[1] = circley;
-			xyz[2] = 0;
-
-			RotateAroundY(xyz, cos_gamma, sin_gamma);
-			RotateAroundX(xyz, cos_alpha, sin_alpha);
-			RotateAroundZ(xyz, cos_beta, sin_beta);
-			xyz[2] += K2;
-
-			ooz = 1.0f / xyz[2]; //"one over z". It is more profitable to divide once and then multiply twice than to divide twice.
-			xp = static_cast<int>(window_width / 2 + xyz[0] * ooz * K1);
-			yp = static_cast<int>(window_high / 2 - xyz[1] * ooz * K1);
-
-			if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high)
-				continue;
-			//The vector of the normal to the surface
-			Lxyz[0] = cos_theta;
-			Lxyz[1] = sin_theta;
-			Lxyz[2] = 0;
-			RotateAroundY(Lxyz, cos_gamma, sin_gamma);
-			RotateAroundX(Lxyz, cos_alpha, sin_alpha);
-			RotateAroundZ(Lxyz, cos_beta, sin_beta);
-
-			float light_intensity = 1;//hardcode for now
-
-			if (light_intensity > 0)//light_intensity - the cosine of the angle between the light vector and the normal
+			for (float radius = R1; radius < R2; radius += radius_step)
 			{
-				if (ooz > z_buffer[xp][yp])
-				{
-					z_buffer[xp][yp] = ooz;
-					int luminance_index = static_cast<int>(light_intensity * 8);//Make fit in range
-					output[xp][yp] = dictionary[luminance_index];
-				}
-			}
-		}
-		//Drawing lines
-		for (int i = -1; i <= 1; i += 2)
-		{
-			for (float x = 0; abs(x) < logo_high; x -= x_step)
-			{
-				xyz[0] = x;
-				xyz[1] = i * radius;
-				xyz[2] = 0;
+				float circlex = radius * cos_theta;//The initial coordinates of the circle
+				float circley = radius * sin_theta;
 
-				RotateAroundY(xyz, cos_gamma, sin_gamma);
+				xyz[0] = circlex;
+				xyz[1] = circley;
+				xyz[2] = z;
+
 				RotateAroundX(xyz, cos_alpha, sin_alpha);
+				RotateAroundY(xyz, cos_gamma, sin_gamma);
 				RotateAroundZ(xyz, cos_beta, sin_beta);
 				xyz[2] += K2;
 
-				ooz = 1.0f / xyz[2];
+				ooz = 1.0f / xyz[2]; //"one over z". It is more profitable to divide once and then multiply twice than to divide twice.
 				xp = static_cast<int>(window_width / 2 + xyz[0] * ooz * K1);
 				yp = static_cast<int>(window_high / 2 - xyz[1] * ooz * K1);
 
 				if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high)
 					continue;
-
+				//The vector of the normal to the surface
 				Lxyz[0] = cos_theta;
 				Lxyz[1] = sin_theta;
 				Lxyz[2] = 0;
@@ -182,15 +147,70 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 				RotateAroundX(Lxyz, cos_alpha, sin_alpha);
 				RotateAroundZ(Lxyz, cos_beta, sin_beta);
 
-				float light_intensity = 1;
+				light_intensity = abs(Lxyz[0] - Lxyz[2]);//(-sqrt(2), sqrt(2))
+				//cout << Lxyz[1] << " " << Lxyz[2] << endl;
+				//cout << "sintheta = " << sin_theta << endl;
 
 				if (light_intensity > 0)
 				{
 					if (ooz > z_buffer[xp][yp])
 					{
 						z_buffer[xp][yp] = ooz;
-						int luminance_index = static_cast<int>(light_intensity * 8);
+						int luminance_index = static_cast<int>(light_intensity * 6);
 						output[xp][yp] = dictionary[luminance_index];
+					}
+				}
+				else
+				{
+					output[xp][yp] = dictionary[0];
+				}
+			}
+		}
+
+		for (float radius = R1; radius < R2; radius += radius_step)
+		{
+			//Drawing lines
+			for (int i = -1; i <= 1; i += 2)
+			{
+				for (float x = 0; abs(x) < logo_high; x -= x_step)
+				{
+					xyz[0] = x;
+					xyz[1] = i * radius;
+					xyz[2] = z;
+
+					RotateAroundY(xyz, cos_gamma, sin_gamma);
+					RotateAroundX(xyz, cos_alpha, sin_alpha);
+					RotateAroundZ(xyz, cos_beta, sin_beta);
+					xyz[2] += K2;
+
+					ooz = 1.0f / xyz[2];
+					xp = static_cast<int>(window_width / 2 + xyz[0] * ooz * K1);
+					yp = static_cast<int>(window_high / 2 - xyz[1] * ooz * K1);
+
+					if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high)
+						continue;
+
+					Lxyz[0] = cos_theta;
+					Lxyz[1] = sin_theta;
+					Lxyz[2] = 0;
+					RotateAroundY(Lxyz, cos_gamma, sin_gamma);
+					RotateAroundX(Lxyz, cos_alpha, sin_alpha);
+					RotateAroundZ(Lxyz, cos_beta, sin_beta);
+
+					light_intensity = abs(Lxyz[0] - Lxyz[2]);//(-sqrt(2), sqrt(2))
+
+					if (light_intensity > 0)
+					{
+						if (ooz > z_buffer[xp][yp])
+						{
+							z_buffer[xp][yp] = ooz;
+							int luminance_index = static_cast<int>(light_intensity * 5);
+							output[xp][yp] = dictionary[luminance_index];
+						}
+					}
+					else
+					{
+						output[xp][yp] = dictionary[0];
 					}
 				}
 			}
@@ -237,7 +257,7 @@ int main()
 		//Sleep(10);
 		// 
 		//angles of rotation of the figure
-		alpha += 0.03f;
+		alpha += 0.05f;
 		//beta += 0.03f;
 		//gamma += 0.03f;
 		counter++;
