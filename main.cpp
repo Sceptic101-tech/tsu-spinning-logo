@@ -13,9 +13,6 @@ const int window_width = 50;
 
 const float half_cube_side = 2;
 
-const float theta_step = 0.09f;
-const float phi_step = 0.03f;
-
 const float x_step = 0.05f;
 const float y_step = 0.05f;
 const float z_step = 0.05f;
@@ -144,20 +141,23 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 				RotateAroundX(xyz, cos_alpha, sin_alpha);
 				RotateAroundZ(xyz, cos_beta, sin_beta);
 				xyz[2] += K2;
+
 				ooz = 1.0f / xyz[2]; //"one over z" It is more profitable to divide once and then multiply twice than to divide twice
 				xp = static_cast<int>(window_width / 2 + xyz[0] * ooz * K1);
 				yp = static_cast<int>(window_high / 2 - xyz[1] * ooz * K1);
 
-				//Вектор нормали к поверхности
+				/*			
 				Lxyz[0] = 1;
 				Lxyz[1] = 1;
 				Lxyz[2] = 0;
 				RotateAroundY(Lxyz, cos_gamma, sin_gamma);
 				RotateAroundX(Lxyz, cos_alpha, sin_alpha);
 				RotateAroundZ(Lxyz, cos_beta, sin_beta);
+				float light_intensity = Lxyz[1] - Lxyz[2];//Multiply by the light vector (0.1,-1)
+				*/
 
-				//float light_intensity = Lxyz[1] - Lxyz[2];//Multiply by the light vector (0.1,-1)
 				float light_intensity = 1;
+
 				if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high)
 					continue;
 
@@ -166,10 +166,7 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 					if (ooz > z_buffer[xp][yp])
 					{
 						z_buffer[xp][yp] = ooz;
-						int luminance_index = static_cast<int>(light_intensity * 5.5f);//Now in the range (0, 11)
-						output[xp][yp] = dictionary[i + 5];
-						//output[xp][yp] = dictionary[luminance_index];
-						//output[xp][yp] = '#';
+						output[xp][yp] = dictionary[i + 4];
 					}
 				}
 			}
