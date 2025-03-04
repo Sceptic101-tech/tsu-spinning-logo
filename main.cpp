@@ -11,31 +11,36 @@ HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 const int window_high = 50;
 const int window_width = 50;
 
-const float logo_high = 1.5f;
-const float half_pi = M_PI / 2;
-const float half_logo_thickness = 0.3f;
-
+//steps
 const float theta_step = 0.1f;
-//const float phi_step = 0.09f;
 const float radius_step_for_front = 0.03f;
 float radius_step;
-
-
 const float x_step = 0.1f;
 const float y_step = 0.1f;
 const float z_step = 0.1f;
-char dictionary[12] = { '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@' };
 
+//lightning and visualisation section
+const bool is_lighting = 1;
+char symbol = '1';
+char dictionary[12] = { '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@' };
+char TSU_letters[3] = { 'T', 'S', 'U' };
+bool is_TSU_letters = 0;
+
+//logo features
+const float logo_high = 1.5f;
+const float half_pi = M_PI / 2;
+const float half_logo_thickness = 0.3f;
 const float R1 = 1.0f;//The radius of the inner circle
 const float R2 = 2.0f;//The radius of the outer circle
 const float K2 = 10.0f;//The distance from the observer to the figure
+
 const float K1 = window_width * K2 * 8 / (20 * (logo_high + R2));//The zoom level of the perspective projection to 2D
 
+//pre-defined
 char** output;
 float** z_buffer;
 float* xyz;
 float* Lxyz;
-
 float sin_alpha;
 float cos_alpha;
 float sin_beta;
@@ -46,6 +51,7 @@ float cos_phi;
 float sin_phi;
 float sin_gamma;
 float cos_gamma;
+float z;
 float ooz;
 float light_intensity;
 int xp;
@@ -109,7 +115,8 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 	sin_gamma = sin(gamma);
 	cos_gamma = cos(gamma);
 
-	for (float z = -half_logo_thickness; z < half_logo_thickness; z += z_step)
+	if (sin_alpha == 0) z = half_logo_thickness - z_step;
+	for (z = -half_logo_thickness; z < half_logo_thickness; z += z_step)
 	{
 		if (z == -half_logo_thickness || z + z_step >= half_logo_thickness) radius_step = radius_step_for_front;
 		else radius_step = R2 - R1 - radius_step_for_front;
@@ -139,6 +146,7 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 
 				if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high)
 					continue;
+
 				//The vector of the normal to the surface
 				Lxyz[0] = cos_theta;
 				Lxyz[1] = sin_theta;
@@ -147,22 +155,25 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 				RotateAroundX(Lxyz, cos_alpha, sin_alpha);
 				RotateAroundZ(Lxyz, cos_beta, sin_beta);
 
-				light_intensity = abs(Lxyz[0] - Lxyz[2]);//(-sqrt(2), sqrt(2))
-				//cout << Lxyz[1] << " " << Lxyz[2] << endl;
-				//cout << "sintheta = " << sin_theta << endl;
+				light_intensity = (Lxyz[0] - Lxyz[2]) * is_lighting;//if not is_lighting -> fills by only one symbol
 
 				if (light_intensity > 0)
 				{
 					if (ooz > z_buffer[xp][yp])
 					{
 						z_buffer[xp][yp] = ooz;
-						int luminance_index = static_cast<int>(light_intensity * 6);
+						int luminance_index = static_cast<int>(light_intensity * 7);//normalizing to fit dictionary size
 						output[xp][yp] = dictionary[luminance_index];
 					}
 				}
 				else
 				{
-					output[xp][yp] = dictionary[0];
+					if (ooz > z_buffer[xp][yp])
+					{
+						z_buffer[xp][yp] = ooz;
+						if (is_lighting) output[xp][yp] = dictionary[0];
+						else output[xp][yp] = symbol;
+					}
 				}
 			}
 		}
@@ -170,6 +181,7 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 		for (float radius = R1; radius < R2; radius += radius_step)
 		{
 			//Drawing lines
+			//Left and right parts of logo
 			for (int i = -1; i <= 1; i += 2)
 			{
 				for (float x = 0; abs(x) < logo_high; x -= x_step)
@@ -190,40 +202,53 @@ void RenderFrame(float alpha, float beta, float gamma)//Each frame will be rotat
 					if (xp < 0 || xp >= window_width || yp < 0 || yp >= window_high)
 						continue;
 
-					Lxyz[0] = cos_theta;
-					Lxyz[1] = sin_theta;
-					Lxyz[2] = 0;
-					RotateAroundY(Lxyz, cos_gamma, sin_gamma);
-					RotateAroundX(Lxyz, cos_alpha, sin_alpha);
-					RotateAroundZ(Lxyz, cos_beta, sin_beta);
-
-					light_intensity = abs(Lxyz[0] - Lxyz[2]);//(-sqrt(2), sqrt(2))
+					light_intensity = (sin_alpha * i / (abs(xyz[0]) + 1)) * is_lighting;//if not is_lighting -> fills by only one symbol
 
 					if (light_intensity > 0)
 					{
 						if (ooz > z_buffer[xp][yp])
 						{
 							z_buffer[xp][yp] = ooz;
-							int luminance_index = static_cast<int>(light_intensity * 5);
+							int luminance_index = static_cast<int>(light_intensity * logo_high*1.8f);
 							output[xp][yp] = dictionary[luminance_index];
 						}
 					}
 					else
 					{
-						output[xp][yp] = dictionary[0];
+						if (ooz > z_buffer[xp][yp])
+						{
+							z_buffer[xp][yp] = ooz;
+							if (is_lighting) output[xp][yp] = dictionary[0];
+							else output[xp][yp] = symbol;
+						}
 					}
 				}
 			}
 		}
 	}
 	//To the screen
-	for (int i = 0; i < window_high; i++)
+	if (is_TSU_letters)//special output for tsu letters
 	{
-		for (int j = 0; j < window_width; j++)
+		for (int i = 0; i < window_high; i++)
 		{
-			putchar(output[i][j]);
+			for (int j = 0; j < window_width; j++)
+			{
+				if (output[i][j] != ' ') putchar(TSU_letters[(i + j) % 3]);
+				else putchar(' ');
+			}
+			putchar('\n');
 		}
-		putchar('\n');
+	}
+	else//common output
+	{
+		for (int i = 0; i < window_high; i++)
+		{
+			for (int j = 0; j < window_width; j++)
+			{
+				putchar(output[i][j]);
+			}
+			putchar('\n');
+		}
 	}
 }
 
