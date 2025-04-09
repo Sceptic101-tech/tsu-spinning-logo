@@ -20,13 +20,14 @@ const float y_step = 0.1f;
 const float z_step = 0.1f;
 
 //lightning and visualisation section
-const bool is_lighting = 1;
-char symbol = '1';
+const bool is_lighting = 1; //if '1' then the lighting will be calculated.
+const bool is_TSU_letters = 0;// if '1' then the image will be filled with TSU_letters, no lighting calculation
+char symbol = '1';// if is_lighting = is_TSU_letters = 0 then the image will be filled with symbol
 char dictionary[12] = { '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@' };
 char TSU_letters[3] = { 'T', 'S', 'U' };
-bool is_TSU_letters = 0;
 
 //logo features
+//logo consists of two semicircles(R1 and R2) and 4 planes(inner and outer border).
 const float logo_high = 1.5f;
 const float half_pi = M_PI / 2;
 const float half_logo_thickness = 0.3f;
